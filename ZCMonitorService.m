@@ -11,7 +11,7 @@
 
 #define MONITOR_USE_PRIORITY_LAZY  0  /* 是否使用优先级&懒广播，暂不使用 */
 
-#pragma mark - Class - ZCMonitorBroadcast
+#pragma mark - ~~~~~~~~~~ ZCMonitorBroadcast ~~~~~~~~~~
 @implementation ZCMonitorBroadcast
 
 - (instancetype)initWithType:(ZCMonitorType)type issuer:(id)issuer {
@@ -21,7 +21,7 @@
         _issuer = issuer;
         _ids = [NSArray array];
         _infos = [NSDictionary dictionary];
-        _priority = ZCMonitorPriorityNormal;
+        _priority = ZCEnumMonitorPriorityNormal;
     }
     return self;
 }
@@ -32,7 +32,7 @@
     if (infos) _infos = infos;
 }
 
-- (void)resetRank:(int)rank priority:(ZCMonitorPriority)priority {
+- (void)resetRank:(int)rank priority:(ZCEnumMonitorPriority)priority {
     _rank = rank;
     _priority = priority;
 }
@@ -51,7 +51,7 @@
 @end
 
 
-#pragma mark - Class - ZCMonitorLazy
+#pragma mark - ~~~~~~~~~~ ZCMonitorLazy ~~~~~~~~~~
 @interface ZCMonitorLazy : NSObject
 
 @property (nonatomic, assign) BOOL isOpen;  /**< 懒广播时是否是允许时时接收 */
@@ -72,7 +72,7 @@
 @end
 
 
-#pragma mark - Class - ZCMonitorListener
+#pragma mark - ~~~~~~~~~~ ZCMonitorListener ~~~~~~~~~~
 @interface ZCMonitorListener : NSObject
 
 @property (nonatomic, weak) id <ZCMonitorProtocol> listener;  /**< 广播接收者 */
@@ -138,11 +138,11 @@
     return NO;
 }
 
-- (ZCMonitorPriority)listenPriority:(ZCMonitorType)type {
+- (ZCEnumMonitorPriority)listenPriority:(ZCMonitorType)type {
     return (2 * ((self.mask2 & type) ? 1 : 0) + ((self.mask1 & type) ? 1 : 0));
 }
 
-#pragma mark - Private
+#pragma mark - private
 - (void)setListener:(id<ZCMonitorProtocol>)listener {
     _listener = listener;
     if ([listener respondsToSelector:@selector(monitorForwardBroadcast:)]) {
@@ -156,7 +156,7 @@
             if (y == 1) {
                 NSUInteger type = 1 << i;
                 if ([listener respondsToSelector:@selector(monitorPriorityWithType:)]) {
-                    ZCMonitorPriority priority = [listener monitorPriorityWithType:type];
+                    ZCEnumMonitorPriority priority = [listener monitorPriorityWithType:type];
                     if (priority & 1) _mask1 = _mask1 | type;
                     if (priority & 2) _mask2 = _mask2 | type;
                 } else {
@@ -201,7 +201,7 @@
 @end
 
 
-#pragma mark - Class - ZCMonitorService
+#pragma mark - ~~~~~~~~~~ ZCMonitorService ~~~~~~~~~~
 @interface ZCMonitorService ()
 
 @property (nonatomic, strong) NSMutableArray <ZCMonitorListener *>*listeners;
@@ -250,8 +250,8 @@
         }
     }
     [maps sortUsingComparator:^NSComparisonResult(ZCMonitorListener *_Nonnull obj1, ZCMonitorListener *_Nonnull obj2) {
-        ZCMonitorPriority pri1 = [obj1 listenPriority:subbro.type];
-        ZCMonitorPriority pri2 = [obj2 listenPriority:subbro.type];
+        ZCEnumMonitorPriority pri1 = [obj1 listenPriority:subbro.type];
+        ZCEnumMonitorPriority pri2 = [obj2 listenPriority:subbro.type];
         if (pri1 == pri2) return NSOrderedSame;
         else if (pri1 > pri2) return NSOrderedAscending;
         else return NSOrderedDescending;
@@ -268,7 +268,7 @@
 
 - (void)issue_api:(ZCMonitorBroadcast *)broadcast {
     if (!broadcast || broadcast.type == ZCMonitorTypeNone) {
-        NSAssert(0, @"monitor type is mistake"); return;
+        NSAssert(0, @"ZCKit: monitor type is mistake"); return;
     }
     NSMutableArray *subbros = [NSMutableArray array];
     NSUInteger n = broadcast.type; NSUInteger i = 0;
@@ -287,7 +287,7 @@
         for (ZCMonitorListener *listen in self.listeners) {
             if (listen.listener && (listen.listenType & subbro.type)) {
                 if ([listen.listener respondsToSelector:@selector(monitorForwardBroadcast:)]) {
-                    [subbro resetRank:rank priority:ZCMonitorPriorityNormal];
+                    [subbro resetRank:rank priority:ZCEnumMonitorPriorityNormal];
                     [listen.listener monitorForwardBroadcast:subbro];
                     rank += 1;
                 }
@@ -296,33 +296,33 @@
     }
 }
 
-#pragma mark - API
+#pragma mark - api
 + (void)issue_broadcast:(ZCMonitorType)type issuer:(id)issuer {
-    NSAssert([NSThread currentThread].isMainThread, @"current is not main thread");
+    NSAssert([NSThread currentThread].isMainThread, @"ZCKit: current is not main thread");
     ZCMonitorBroadcast *broadcast = [ZCMonitorBroadcast broadcastType:type issuer:issuer];
     [[ZCMonitorService instance] issue_api:broadcast];
 }
 
 + (void)issue_broadcast:(ZCMonitorBroadcast *)broadcast {
-    NSAssert([NSThread currentThread].isMainThread, @"current is not main thread");
+    NSAssert([NSThread currentThread].isMainThread, @"ZCKit: current is not main thread");
     [[ZCMonitorService instance] issue_api:broadcast];
 }
 
 + (void)open_lazyReceive:(id <ZCMonitorProtocol>)listener type:(ZCMonitorType)type {
-    NSAssert([NSThread currentThread].isMainThread, @"current is not main thread");
+    NSAssert([NSThread currentThread].isMainThread, @"ZCKit: current is not main thread");
     ZCMonitorListener *lis = [[ZCMonitorService instance] find_listener:listener];
     if (lis) [lis open_caches:type];
 }
 
 + (void)close_lazyReceive:(id <ZCMonitorProtocol>)listener type:(ZCMonitorType)type {
-    NSAssert([NSThread currentThread].isMainThread, @"current is not main thread");
+    NSAssert([NSThread currentThread].isMainThread, @"ZCKit: current is not main thread");
     ZCMonitorListener *lis = [[ZCMonitorService instance] find_listener:listener];
     if (lis) [lis close_caches:type];
 }
 
 + (void)register_listener:(id <ZCMonitorProtocol>)listener {
     if (!listener) return;
-    NSAssert([NSThread currentThread].isMainThread, @"current is not main thread");
+    NSAssert([NSThread currentThread].isMainThread, @"ZCKit: current is not main thread");
     ZCMonitorService *monitor = [ZCMonitorService instance];
     ZCMonitorListener *audience = nil;
     for (ZCMonitorListener *member in monitor.listeners) {
@@ -342,7 +342,7 @@
 
 + (void)remove_listener:(id <ZCMonitorProtocol>)listener {
     if (!listener) return;
-    NSAssert([NSThread currentThread].isMainThread, @"current is not main thread");
+    NSAssert([NSThread currentThread].isMainThread, @"ZCKit: current is not main thread");
     ZCMonitorService *monitor = [ZCMonitorService instance];
     ZCMonitorListener *removeAudience = nil;
     NSMutableArray *audiences = [NSMutableArray array];

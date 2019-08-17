@@ -11,17 +11,18 @@
 NS_ASSUME_NONNULL_BEGIN
 
 typedef NS_OPTIONS(NSUInteger, ZCMonitorType) {
-    ZCMonitorTypeNone   = 0,  /**< 用于获取监听类型 */
-    ZCMonitorTypeTest1  = 1 << 0,
+    ZCMonitorTypeEvent  = 1 << 0,   /**< 应用内埋点事件 */
     ZCMonitorTypeTest2  = 1 << 1,
 };
 
-typedef NS_ENUM(NSInteger, ZCMonitorPriority) {
-    ZCMonitorPriorityLow      = 0,  /**< 低优先级 */
-    ZCMonitorPriorityNormal   = 1,  /**< 默认优先 */
-    ZCMonitorPriorityMiddle   = 2,  /**< 中优先级 */
-    ZCMonitorPriorityHigh     = 3,  /**< 高优先级 */
+typedef NS_ENUM(NSInteger, ZCEnumMonitorPriority) {
+    ZCEnumMonitorPriorityLow      = 0,  /**< 低优先级 */
+    ZCEnumMonitorPriorityNormal   = 1,  /**< 默认优先 */
+    ZCEnumMonitorPriorityMiddle   = 2,  /**< 中优先级 */
+    ZCEnumMonitorPriorityHigh     = 3,  /**< 高优先级 */
 };
+
+static const ZCMonitorType ZCMonitorTypeNone;  /**< 用于获取监听类型等 */
 
 
 @interface ZCMonitorBroadcast : NSObject
@@ -30,7 +31,7 @@ typedef NS_ENUM(NSInteger, ZCMonitorPriority) {
 
 @property (nonatomic, assign, readonly) ZCMonitorType type;  /**< 广播类型，单值或者复合值 */
 
-@property (nonatomic, assign, readonly) ZCMonitorPriority priority;  /**< 广播优先级 */
+@property (nonatomic, assign, readonly) ZCEnumMonitorPriority priority;  /**< 广播优先级 */
 
 @property (nullable, nonatomic, strong, readonly) id issuer;  /**< 广播的发布者 */
 
@@ -47,7 +48,7 @@ typedef NS_ENUM(NSInteger, ZCMonitorPriority) {
 @end
 
 
-@protocol ZCMonitorProtocol <NSObject>
+@protocol ZCMonitorProtocol <NSObject>  /**< 监听需要实现的方法 */
 
 @required
 /** 返回的复合值值就是需要监听的广播 & 返回值不可变，收到广播在此分发下去，特定对象在此接收，broadcast.type在此为单值 */
@@ -55,7 +56,7 @@ typedef NS_ENUM(NSInteger, ZCMonitorPriority) {
 
 @optional
 /** 返回对特定类型的广播接收的优先级，broadcast.type在此为单值，在注册的时候调用一次，默认为Normal */
-- (ZCMonitorPriority)monitorPriorityWithType:(ZCMonitorType)type;
+- (ZCEnumMonitorPriority)monitorPriorityWithType:(ZCMonitorType)type;
 
 /** 返回此类型广播是否是懒广播，broadcast.type在此为单值，在注册的时候调用一次，默认为NO */
 - (BOOL)monitorLazyReceiveWithType:(ZCMonitorType)type;
